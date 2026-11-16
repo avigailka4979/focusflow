@@ -1,0 +1,49 @@
+# FocusFlow - frontend, backend and MongoDB, all from public images.
+#   Client:  http://localhost:3000
+#   Server:  http://localhost:8000   (health check: http://localhost:8000/health, docs: /docs)
+# Run:  docker compose up
+name: focusflow
+
+services:
+  mongo:
+    image: mongo:7
+    restart: unless-stopped
+    volumes:
+      - mongo-data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 10s
+
+  backend:
+    image: ghcr.io/avigailka4979/focusflow-backend:latest
+    platform: linux/amd64
+    restart: unless-stopped
+    depends_on:
+      mongo:
+        condition: service_healthy
+    environment:
+      MONGODB_URI: ${MONGODB_URI:-mongodb://mongo:27017}
+      DB_NAME: ${DB_NAME:-focusflow}
+      JWT_SECRET: ${JWT_SECRET:-}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      CORS_ORIGINS: http://localhost:3000
+    ports:
+      - "8000:8000"
+
+  frontend:
+    image: ghcr.io/avigailka4979/focusflow-frontend:latest
+    platform: linux/amd64
+    restart: unless-stopped
+    depends_on:
+      - backend
+    environment:
+      # Where the client's nginx forwards /api requests (service name, not localhost)
+      BACKEND_URL: http://backend:8000
+    ports:
+      - "3000:80"
+
+volumes:
+  mongo-data:

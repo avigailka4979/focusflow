@@ -1,0 +1,7 @@
+# Local build from source (developers only). The graders use docker-compose.yml.
+#   docker compose -f docker-compose.yml -f docker-compose.build.yml up --build
+services:
+  backend:
+    build: ./backend
+  frontend:
+    build: ./frontend

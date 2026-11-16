@@ -1,0 +1,23 @@
+{
+  "name": "focusflow-frontend",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "copy-assets": "node scripts/copy-assets.mjs",
+    "dev": "npm run copy-assets && vite",
+    "build": "npm run copy-assets && vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@mediapipe/tasks-vision": "1.2.0",
+    "onnxruntime-web": "1.31.1",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "react-router-dom": "7.18.5"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "6.1.2",
+    "vite": "8.3.5"
+  }
+}
