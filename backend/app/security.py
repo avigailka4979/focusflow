@@ -168,9 +168,13 @@ login_limiter = LoginLimiter()
 
 
 def client_ip(request: Request) -> str:
-    # Requests arrive through the client's nginx, which sets X-Real-IP. A spoofed
+    # Locally requests come through the client's nginx (X-Real-IP); in the cloud
+    # through Google's Load Balancer (X-Forwarded-For: "<client>, <lb>"). A spoofed
     # header only dodges the per-IP limit; the per-email limit still applies.
     real = request.headers.get("x-real-ip", "").strip()
     if real and len(real) <= 45:
         return real
+    forwarded = request.headers.get("x-forwarded-for", "").split(",")[0].strip()
+    if forwarded and len(forwarded) <= 45:
+        return forwarded
     return request.client.host if request.client else "unknown"
