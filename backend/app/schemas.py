@@ -111,5 +111,5 @@ class ReadingIn(Strict):
     # Seconds into the video, or 0..1 scroll position in a text.
     position: float = Field(ge=0, le=1_000_000)
     score: float = Field(ge=0, le=1)
-    # Optional 5-level class from the v4_2 model: 0 not in frame .. 4 very attentive.
+    # Optional 5-level class (0..4) for models that output one. The current model (v3) does not.
     level: int | None = Field(default=None, ge=0, le=4)

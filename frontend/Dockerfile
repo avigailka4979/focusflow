@@ -7,7 +7,7 @@ COPY . .
 # MediaPipe face model, served locally so the site needs no CDN at runtime
 ADD https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task public/mediapipe/face_landmarker.task
 RUN npm run build \
- && test -s dist/models/v4_2.onnx \
+ && test -s dist/models/v3.onnx \
  && test -s dist/mediapipe/face_landmarker.task \
  && chmod -R a+rX dist
 

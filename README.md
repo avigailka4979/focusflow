@@ -1,7 +1,7 @@
 # FocusFlow
 
 A learning site that measures attention through the webcam while you watch a YouTube video or read a text.
-Face landmarks (MediaPipe) and the attention model (`v4_2.onnx`, onnxruntime-web) run **in the browser**; only scores are sent to the server.
+Face landmarks (MediaPipe) and the attention model (`v3.onnx`, onnxruntime-web; landmarks re-normalised to a face crop) run **in the browser**; only scores are sent to the server.
 
 | Part | Tech | Port |
 |---|---|---|

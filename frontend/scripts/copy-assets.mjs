@@ -20,11 +20,11 @@ for (const f of ['ort-wasm-simd-threaded.wasm', 'ort-wasm-simd-threaded.mjs']) {
 cpSync(join(nm, '@mediapipe', 'tasks-vision', 'wasm'), join(pub, 'mediapipe', 'wasm'), { recursive: true });
 
 // Model: frontend/models (inside the Docker build context) or ../models (repo root)
-const candidates = [join(root, 'models', 'v4_2.onnx'), join(root, '..', 'models', 'v4_2.onnx')];
+const candidates = [join(root, 'models', 'v3.onnx'), join(root, '..', 'models', 'v3.onnx')];
 const model = candidates.find(existsSync);
 if (!model) {
-  console.error('v4_2.onnx not found in', candidates);
+  console.error('v3.onnx not found in', candidates);
   process.exit(1);
 }
-cpSync(model, join(pub, 'models', 'v4_2.onnx'));
+cpSync(model, join(pub, 'models', 'v3.onnx'));
 console.log('assets copied');

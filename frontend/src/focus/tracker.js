@@ -1,7 +1,8 @@
 // Attention tracking that runs entirely in the browser:
 //   camera -> MediaPipe FaceLandmarker (478 landmarks, 10 fps)
 //          -> sliding window of 100 frames (~10 s)
-//          -> attention model v4_2.onnx (onnxruntime-web, WASM)
+//          -> landmarks re-normalised to a square face crop (20% margin)
+//          -> attention model v3.onnx (GRU + attention, onnxruntime-web, WASM)
 //          -> score 0..1 (+ 5-level class)
 // Only the score leaves the browser. Video frames and landmarks are never sent.
 import { FaceLandmarker, FilesetResolver } from '@mediapipe/tasks-vision';
@@ -14,7 +15,8 @@ const FRAME_LEN = POINTS * 3;
 export const SCORE_EVERY_MS = 2000; // a new score every 2 s once the window is full
 const NO_FACE_RESET_MS = 2000;      // window is cleared after 2 s without a face
 
-const MODEL_URL = '/models/v4_2.onnx';
+const MODEL_URL = '/models/v3.onnx';
+const CROP_MARGIN = 0.2; // the models were trained on 256px face crops with ~20% margin
 const MP_WASM = '/mediapipe/wasm';
 const MP_MODEL_LOCAL = '/mediapipe/face_landmarker.task';
 const MP_MODEL_CDN = 'https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task';
@@ -81,6 +83,31 @@ export async function scoreWindow(session, frames /* Float32Array(WINDOW*FRAME_L
     level = logits.indexOf(Math.max(...logits));
   }
   return { score, level };
+}
+
+/**
+ * MediaPipe returns x,y normalised to the whole camera frame. The training data
+ * came from face crops, so the face filled most of the image. Re-express every
+ * point relative to a square box around the face (20% margin on each side), the
+ * same as running MediaPipe on a cropped image. z is scaled by the same factor.
+ */
+export function toCropCoords(face, width, height) {
+  let minX = Infinity; let maxX = -Infinity; let minY = Infinity; let maxY = -Infinity;
+  for (let i = 0; i < POINTS; i++) {
+    const x = face[i].x * width; const y = face[i].y * height;
+    if (x < minX) minX = x; if (x > maxX) maxX = x;
+    if (y < minY) minY = y; if (y > maxY) maxY = y;
+  }
+  const side = Math.max(maxX - minX, maxY - minY) * (1 + 2 * CROP_MARGIN) || 1;
+  const x0 = (minX + maxX) / 2 - side / 2;
+  const y0 = (minY + maxY) / 2 - side / 2;
+  const f = new Float32Array(FRAME_LEN);
+  for (let i = 0; i < POINTS; i++) {
+    f[i * 3] = (face[i].x * width - x0) / side;
+    f[i * 3 + 1] = (face[i].y * height - y0) / side;
+    f[i * 3 + 2] = face[i].z * (width / side);
+  }
+  return f;
 }
 
 export async function listCameras() {
@@ -199,12 +226,7 @@ export class FocusTracker {
     }
     this.lastFaceAt = now;
 
-    const f = new Float32Array(FRAME_LEN);
-    for (let i = 0; i < POINTS; i++) {
-      f[i * 3] = face[i].x;
-      f[i * 3 + 1] = face[i].y;
-      f[i * 3 + 2] = face[i].z;
-    }
+    const f = toCropCoords(face, v.videoWidth, v.videoHeight);
     this.frames.push(f);
     if (this.frames.length > WINDOW) this.frames.shift();
     this.setFace(true);

@@ -82,6 +82,7 @@ export default function ContentView() {
   const textRef = useRef(null);
   const sessionRef = useRef(null);
   const lowRef = useRef(0);
+  const pauseBlockedUntil = useRef(0); // no auto-pause right after the user resumes
   const contentRef = useRef(null);
 
   useEffect(() => {
@@ -110,8 +111,10 @@ export default function ContentView() {
 
     if (s < LOW_FOCUS_THRESHOLD) {
       lowRef.current += 1;
-      // Intervention: after two low scores in a row (~4 s), pause the video.
-      const pause = lowRef.current >= 2 && contentRef.current?.type === 'youtube';
+      // Intervention: after three low scores in a row (~6 s), pause the video,
+      // but never within 30 s of the user resuming or dismissing the alert.
+      const pause = lowRef.current >= 3 && contentRef.current?.type === 'youtube'
+        && Date.now() > pauseBlockedUntil.current;
       if (pause) playerRef.current?.pause();
       setAlert((a) => ({ score: s, paused: Boolean(a?.paused || pause) }));
     } else {
@@ -226,13 +229,13 @@ export default function ContentView() {
             {alert.paused ? 'עצרנו את הסרטון כדי שלא תפספס/י. ' : 'נסו להתרכז שוב או לקחת הפסקה קצרה. '}
             <span className="alert-actions">
               {content.type === 'youtube' && (
-                <button type="button" className="btn btn-small" onClick={() => { playerRef.current?.rewind(15); setAlert(null); lowRef.current = 0; }}>
+                <button type="button" className="btn btn-small" onClick={() => { playerRef.current?.rewind(15); setAlert(null); lowRef.current = 0; pauseBlockedUntil.current = Date.now() + 30000; }}>
                   חזרה 15 שניות אחורה
                 </button>
               )}
               <button type="button" className="btn btn-small btn-ghost" onClick={() => {
                 if (alert.paused) playerRef.current?.play();
-                setAlert(null); lowRef.current = 0;
+                setAlert(null); lowRef.current = 0; pauseBlockedUntil.current = Date.now() + 30000;
               }}>
                 {alert.paused ? 'המשך צפייה' : 'הבנתי'}
               </button>
